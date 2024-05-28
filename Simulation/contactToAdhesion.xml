@@ -1,0 +1,100 @@
+<CompuCell3D Revision="6" Version="4.4.1">
+   
+   <Metadata>
+      
+      <!-- Basic properties simulation -->
+      <NumberOfProcessors>2</NumberOfProcessors>
+      <DebugOutputFrequency>50</DebugOutputFrequency>
+      <!-- <NonParallelModule Name="Potts"/> -->
+   </Metadata>
+   
+   <Potts>
+      
+      <!-- Basic properties of CPM (GGH) algorithm -->
+      <Dimensions x="100" y="100" z="100"/>
+      <Steps>10000</Steps>
+      <Temperature>20.0</Temperature>
+      <NeighborOrder>2</NeighborOrder>
+   </Potts>
+   
+   <Plugin Name="CellType">
+      <!-- Listing all cell types in the simulation -->
+      <CellType TypeId="0" TypeName="Medium"/>
+      <CellType TypeId="1" TypeName="follower"/>
+      <CellType TypeId="2" TypeName="leader"/>
+   </Plugin>
+   
+   <Plugin Name="Volume">
+      <VolumeEnergyParameters CellType="follower" LambdaVolume="1" TargetVolume="125"/>
+      <VolumeEnergyParameters CellType="leader" LambdaVolume="1" TargetVolume="125"/>
+   </Plugin>
+   
+   <Plugin Name="Surface">
+      <SurfaceEnergyParameters CellType="follower" LambdaSurface="1" TargetSurface="150"/>
+      <SurfaceEnergyParameters CellType="leader" LambdaSurface="1" TargetSurface="150"/>
+   </Plugin>
+   
+   <Plugin Name="ExternalPotential">
+      
+      <!-- External force applied to cell. Each cell type has different force. -->
+      <!-- For more flexible specification of the constraint (done in Python) please use ExternalPotential plugin without specifying per-type parameters -->
+      <!-- Algorithm options are: PixelBased, CenterOfMassBased -->
+      <Algorithm>PixelBased</Algorithm>
+      <!-- <ExternalPotentialParameters CellType="follower" x="0" y="0.0" z="0.0"/> -->
+      <ExternalPotentialParameters CellType="leader" x="-15" y="0.0" z="0.0"/>
+   </Plugin>
+   
+   <Plugin Name="CenterOfMass">
+      <!-- Module tracking center of mass of each cell -->
+   </Plugin>
+   
+   <Plugin Name="NeighborTracker">
+      <!-- Module tracking neighboring cells of each cell -->
+   </Plugin>
+   
+   <Plugin Name="MomentOfInertia">
+      <!-- Module tracking moment of inertia of each cell -->
+   </Plugin>
+   
+   <Plugin Name="PixelTracker">
+      <!-- Module tracking pixels of each cell -->
+   </Plugin>
+
+   <Plugin Name="AdhesionFlex">
+      <!-- Specification of adhesion energies as a function of cadherin concentration at cell membranes -->
+      <!-- Adhesion energy is a function of two cells in ocntact. the functional form is specified by the user -->
+      <AdhesionMolecule Molecule="adh_C"/>
+      <AdhesionMolecule Molecule="adh_M"/>
+      <AdhesionMoleculeDensity CellType="Medium" Density="0" Molecule="adh_C"/>
+      <AdhesionMoleculeDensity CellType="follower" Density="1" Molecule="adh_C"/>
+      <AdhesionMoleculeDensity CellType="leader" Density="1" Molecule="adh_C"/>
+      
+      <AdhesionMoleculeDensity CellType="Medium" Density="1" Molecule="adh_M"/>
+      <AdhesionMoleculeDensity CellType="follower" Density="1" Molecule="adh_M"/>
+      <AdhesionMoleculeDensity CellType="leader" Density="1" Molecule="adh_M"/>
+      
+      <BindingFormula Name="Binary">
+         <Formula>Molecule1*Molecule2</Formula>
+         <Variables>
+            <AdhesionInteractionMatrix>
+               <BindingParameter Molecule1="adh_C" Molecule2="adh_C">-2</BindingParameter>
+               <BindingParameter Molecule1="adh_C" Molecule2="adh_M">-10</BindingParameter>
+               <BindingParameter Molecule1="adh_M" Molecule2="adh_M">-20</BindingParameter>
+            </AdhesionInteractionMatrix>
+         </Variables>
+      </BindingFormula>
+      <NeighborOrder>4</NeighborOrder>
+   </Plugin>
+   
+   <Steppable Type="BlobInitializer">
+      
+      <!-- Initial layout of cells in the form of spherical (circular in 2D) blob -->
+      <Region>
+         <Center x="50" y="50" z="50"/>
+         <Radius>15</Radius>
+         <Gap>0</Gap>
+         <Width>5</Width>
+         <Types>follower</Types>
+      </Region>
+   </Steppable>
+</CompuCell3D>

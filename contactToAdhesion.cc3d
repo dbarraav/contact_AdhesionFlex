@@ -1,0 +1,5 @@
+<Simulation version="4.4.1">
+   <XMLScript Type="XMLScript">Simulation/contactToAdhesion.xml</XMLScript>
+   <PythonScript Type="PythonScript">Simulation/contactToAdhesion.py</PythonScript>
+   <Resource Type="Python">Simulation/contactToAdhesionSteppables.py</Resource>
+</Simulation>

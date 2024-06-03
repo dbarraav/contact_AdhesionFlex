@@ -25,16 +25,19 @@ class contactToAdhesionSteppable(SteppableBasePy):
         cellCOMs = np.zeros((len(self.cell_list), 4))
         
         for cellNum, cell in enumerate(self.cell_list):
-            cell.targetVolume = cell.volume
-            cell.lambdaVolume = 1.0
+            # cell.targetVolume = cell.volume
+            # cell.lambdaVolume = 1.0
             
-            cell.targetSurface = cell.surface
-            cell.lambdaSurface = 1.0
+            # cell.targetSurface = cell.surface
+            # cell.lambdaSurface = 1.0
             
             # Make sure AdhesionFlex plugin is loaded
             # setting adhesion molecule density using its name
             # self.adhesionFlexPlugin.setAdhesionMoleculeDensity(cell, "adh_C", cell.surface)
             # self.adhesionFlexPlugin.setAdhesionMoleculeDensity(cell, "adh_C", cell.surface)
+            axes = np.round(self.momentOfInertiaPlugin.getSemiaxes(cell), 3)
+            
+            cell.dict["elongIdx"] = max(axes)/min(axes)
             cellCOMs[cellNum, :] = [cell.id, cell.xCOM, cell.yCOM, cell.zCOM]
             
         spheroidCOM = np.mean(cellCOMs[1:], axis = 0)
@@ -56,36 +59,62 @@ class contactToAdhesionSteppable(SteppableBasePy):
         adh_CField = self.field.adh_C
         adh_CField.clear()
         
+        # for cell in self.cell_list:
+            # self.adhesionFlexPlugin.setAdhesionMoleculeDensity(cell, "adh_C", cell.surface)
+            # self.adhesionFlexPlugin.setAdhesionMoleculeDensity(cell, "adh_M", cell.surface)
+            
+        leadCellID = self.shared_steppable_vars['leadCellID']
         if mcs == 0:
-            leadCellID = self.shared_steppable_vars['leadCellID']
             leadCell = self.fetch_cell_by_id(leadCellID)
-            self.adhesionFlexPlugin.setAdhesionMoleculeDensity(leadCell, "adh_C", 2.5)
+            self.adhesionFlexPlugin.setAdhesionMoleculeDensity(leadCell, "adh_C", 1.5)
             print("The adh_C molecule density of the leader cell was increased")
 
         for cell in self.cell_list:
             axes = np.round(self.momentOfInertiaPlugin.getSemiaxes(cell), 3)
-            maxAxis = np.max(axes)
-            minAxis = np.min(axes)
-            elongIdx = maxAxis/minAxis
+            elongIdx = max(axes)/min(axes)
+            cell.dict["elongIdx"] = round(elongIdx, 3)
+            
+            if cell.id == leadCellID:
+                neighborIDs = []
+                for neighbor, common_surface_area in self.get_cell_neighbor_data_list(cell):
+                    if neighbor:
+                        neighborIDs.append(neighbor.id)
+                    
+        print(neighborIDs)
+        
+        neighborElongIdx = []
+        for neighborID in neighborIDs:
+            cell = self.fetch_cell_by_id(neighborID)
+            neighborElongIdx.append(cell.dict["elongIdx"])    
+            # if cell.dict["elongIdx"] > 2.5:
+                # self.adhesionFlexPlugin.setAdhesionMoleculeDensity(cell, "adh_C", 1.25)
+            
+        print(neighborElongIdx)
+                
+                
             # if elongIdx > 1.75:
                 # self.adhesionFlexPlugin.setAdhesionMoleculeDensity(cell, "adh_C", 5)
                 # print("Cell with {} has increased their molecule density".format(cell.id))
         
         # self.adhesionFlexPlugin.setMediumAdhesionMoleculeDensity("adh_M", total_surface)
-        if mcs in [0, 200, 400, 600, 800]:
+        elongIdxCells = []
+        if mcs % 25 == 0:
             print("Step {} is completed".format(mcs))
             for cell in self.cell_list:
                 axes = np.round(self.momentOfInertiaPlugin.getSemiaxes(cell), 3)
                 
                 maxAxis = np.max(axes)
                 minAxis = np.min(axes)
-                elongIdx = maxAxis/minAxis
-
-                if cell.type == self.cell_type.leader:
-                    print("Leader cell {} has a moment of Inertia: [{}, {}, {}], and EI of {}".format(cell.id, axes[0], axes[1], axes[2], elongIdx))
-                else:
-                    print("Cell {} has a moment of Inertia: [{}, {}, {}], and EI of {}".format(cell.id, axes[0], axes[1], axes[2], elongIdx))
-                    
+                elongIdx = round(maxAxis/minAxis, 3)
+                elongIdxCells.append(elongIdx)
+                
+                # if cell.type == self.cell_type.leader:
+                    # print("Leader cell {} has a moment of Inertia: [{}, {}, {}], and EI of {}".format(cell.id, axes[0], axes[1], axes[2], elongIdx))
+                # else:
+                    # print("Cell {} has a moment of Inertia: [{}, {}, {}], and EI of {}".format(cell.id, axes[0], axes[1], axes[2], elongIdx))
+        
+            # print(elongIdxCells)
+            print("Max elongIdx is {}.".format(max(elongIdxCells)))
                     
         for cell in self.cell_list:
             adh_CField[cell] = self.adhesionFlexPlugin.getAdhesionMoleculeDensity(cell, "adh_C")
